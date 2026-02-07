@@ -14,11 +14,11 @@ LEFT_CAM_ID = 0
 RIGHT_CAM_ID = 1
 
 # Window width & hight offset
-LEFT_WINDOW_OFFSET = (0, 0) 
-RIGHT_WINDOW_OFFSET = (0, 700) 
-MASK_WINDOW_OFFSET = (200, 200) 
-CALIB_WINDOW_OFFSET = (200, 400) 
-CALIB_WINDOW_SIZE = (700, 0) 
+LEFT_WINDOW_OFFSET = (10, 310) 
+RIGHT_WINDOW_OFFSET = (510, 310) 
+MASK_WINDOW_OFFSET = (10, 660) 
+CALIB_WINDOW_OFFSET = (10, 0) 
+CALIB_WINDOW_SIZE = (900, 0) 
 # Window names
 LEFT_WINDOW_NAME = 'Left camera view'
 RIGHT_WINDOW_NAME = 'Right camera view'
@@ -42,9 +42,9 @@ class RangingControler:
         # Keep track of number of photo count to save them with incremented names
         self.photo_count = 0
         # Videa processing is done frame by frame, store current left & right frame under process
-        self.left_frame = None
-        self.right_frame = None
-        
+        self.display_mask = False
+        self.gui_active = True
+
     def run(self):
         # Allow fps computation 
         fps = ComputeFps()
@@ -54,44 +54,75 @@ class RangingControler:
         self.left_camera.start()
         self.right_camera.start()
         # Run while user doesn't request to stop
-        while self.process_user_input():
+        while self._process_user_input():
             fps_text = f' fps: {fps()}'
-            # Wait & Read the video frame by frame from left camera
-            self.left_frame = self.left_camera.get()
-            if self.left_frame is not None:
+            # Wait & Read the video frame by frame from both camera
+            left_frame = self.left_camera.get()
+            right_frame = self.right_camera.get()
+
+            if left_frame is not None:
                 # Perform detection of led in frame
-                left_target = self.led_detection.run(self.left_frame)
+                left_target = self.led_detection.run(left_frame)
                 # Show frame on screen
-                self.left_camera.display(fps_text)
-            # Wait & Read the video frame by frame from right camera
-            self.right_frame = self.right_camera.get()
-            if self.right_frame is not None:
+                if self.gui_active is True:
+                    self.left_camera.display(fps_text)
+
+            if right_frame is not None:
                 # Perform detection of led in frame
-                right_target = self.led_detection.run(self.right_frame)
+                right_target = self.led_detection.run(right_frame)
                 # Show frame on screen
-                self.right_camera.display(fps_text)
+                if self.gui_active is True:
+                    self.right_camera.display(fps_text)
+
             # Perform ranging if we do have 2 cameras working
             if left_target and right_target:
                 self.ranging.run(left_target, right_target)
-            # Display calibration scrollbars window, if requested
-            if self.led_calibration:
-                self.led_calibration.show()
+
+            # Display things only if gui_active
+            if self.gui_active is True:
+                # Display calibration scrollbars window, if requested
+                if self.led_calibration:
+                    self.led_calibration.show()
+                # Display led detection mask frame, if requested
+                if self.display_mask is True:
+                    self.led_detection.display()
+                # Print fps on terminal if no display on screen
+            else:
+                print(fps_text)
+
         # Terminate Camera threads
         self.left_camera.terminate()
         self.right_camera.terminate()
         
-    def process_user_input(self):
+    def _process_user_input(self):
         go_on = True
         # Take commads from user
-        cmd = cv.waitKey(20)
-        
-        if cmd & 0xFF == ord('c'):                
+        cmd = cv.waitKey(1)
+        if cmd & 0xFF == 255:
+            return go_on
+        if cmd & 0xFF == ord('d'):                
+            if self.gui_active is False:
+                # Display frames requested
+                self.gui_active = True
+            else:
+                self.gui_active = False
+
+        elif cmd & 0xFF == ord('c'):                
             if self.led_calibration is None:
                 # Calibration requested
                 self.led_calibration = LedCalibration(CALIBRATION_WINDOW_NAME, CALIB_WINDOW_SIZE, CALIB_WINDOW_OFFSET)
             else:
                 self.led_calibration.hide()
                 self.led_calibration = None
+        
+        elif cmd & 0xFF == ord('m'):                
+            if self.display_mask is False:
+                # Calibration requested
+                self.led_detection.show()
+                self.display_mask = True
+            else:
+                self.led_detection.hide()
+                self.display_mask = False
 
         elif cmd & 0xFF == ord('p'):
             # Take photo command, trigger one shot

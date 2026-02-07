@@ -12,24 +12,18 @@ class ProducerThread(threading.Thread, ABC):
 
     def run(self):
         while not self.exitFlag:
-            try:
-                item = self.produce()
-                self.queue.put(item)
-            except:
-                print("ProducerThread:::exception ")
-                break
+            self.queue.put(self.produce())
         return
 
     def get(self):
         ''' Called from external thread to wait for item ''' 
-        item = self.queue.get()
-        return item
+        return self.queue.get()
 
     def terminate(self):
         ''' Called from external thread to stop ''' 
         self.exitFlag = True
         # Flush the queue
-        item = self.queue.get()
+        self.queue.get()
         self.close()
 
     @abstractmethod

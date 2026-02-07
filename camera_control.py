@@ -19,15 +19,15 @@ class CameraControl(ProducerThread):
     def _configure_camera(self, camera_id):
         camera = Picamera2(camera_id)
         preview_configuration = camera.create_preview_configuration()
-        camera.configure(preview_configuration) 
+        camera.configure(preview_configuration)
+        camera.set_controls({"FrameRate": 120})
         return camera
     
     def produce(self):
-        if self.camera is not None:
-            self.frame = self.camera.capture_array("main")
+        self.frame = self.camera.capture_array("main")
         return self.frame
     
-    def set_overlay(self, frame, overlay_text):
+    def _set_overlay(self, frame, overlay_text):
         font = cv.FONT_HERSHEY_SIMPLEX
         font_size = 1
         font_color =(0, 0, 255)
@@ -39,7 +39,7 @@ class CameraControl(ProducerThread):
 
     def display(self, overlay_text=None):
         if overlay_text:
-            frame_overlayed = self.set_overlay(self.frame, overlay_text)
+            frame_overlayed = self._set_overlay(self.frame, overlay_text)
         else:
             frame_overlayed = self.frame
         cv.imshow(self.window_name, frame_overlayed)

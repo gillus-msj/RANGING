@@ -6,10 +6,9 @@ from led_calibration import H, S, V
 class LedDetection:
     def __init__(self, window_name, window_offset):
         self.window_name = window_name
+        self.window_offset = window_offset
         self.masked_frame = None
-        x, y = window_offset
-        cv.namedWindow(self.window_name)
-        cv.moveWindow(self.window_name, x, y)
+
 
     def legit_leds(self, bbox):
         # Check that Height / width ratio should be around 4/1
@@ -19,7 +18,7 @@ class LedDetection:
     def run(self, frame):
         frame_color = (0, 255, 0)
         frame_width = 3
-        # Convert frame to gray scale (one-dimentional array) 
+        # Convert frame to HSV (one-dimentional array) 
         hsv_frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
         masked_frame = cv.inRange(hsv_frame, 
                                 (H.low_value, S.low_value, V.low_value), 
@@ -38,6 +37,17 @@ class LedDetection:
         return True, bbox
     
     def display(self):
-        cv.imshow(self.window_name, self.masked_frame)
+        if self.masked_frame is not None:
+            cv.imshow(self.window_name, self.masked_frame)
+
+    def show(self):
+        x, y = self.window_offset
+        cv.namedWindow(self.window_name)
+        cv.moveWindow(self.window_name, x, y)
+        cv.destroyWindow(self.window_name)
+
+    def hide(self):
+        cv.destroyWindow(self.window_name)
+
 
 
