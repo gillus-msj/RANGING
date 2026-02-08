@@ -8,15 +8,15 @@ class H(Axe):
     name = 'H'
     min_value = 0
     max_value = 180
-    low_value = 85
-    high_value = 96
+    low_value = 120
+    high_value = 124
          
 class S(Axe):
     name = 'S'
     min_value = 0
     max_value = 255
-    low_value = 0
-    high_value = 47 
+    low_value = 251
+    high_value = 255 
 
 class V(Axe):
     name = 'V'

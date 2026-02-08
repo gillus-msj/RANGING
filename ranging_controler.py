@@ -16,13 +16,15 @@ RIGHT_CAM_ID = 1
 # Window width & hight offset
 LEFT_WINDOW_OFFSET = (10, 310) 
 RIGHT_WINDOW_OFFSET = (510, 310) 
-MASK_WINDOW_OFFSET = (10, 660) 
+LEFT_MASK_WINDOW_OFFSET = (10, 660) 
+RIGHT_MASK_WINDOW_OFFSET = (710, 660) 
 CALIB_WINDOW_OFFSET = (10, 0) 
 CALIB_WINDOW_SIZE = (900, 0) 
 # Window names
 LEFT_WINDOW_NAME = 'Left camera view'
 RIGHT_WINDOW_NAME = 'Right camera view'
-MASK_WINDOW_NAME = 'Mask'
+LEFT_MASK_WINDOW_NAME = 'Left Mask'
+RIGHT_MASK_WINDOW_NAME = 'Right Mask'
 CALIBRATION_WINDOW_NAME = ' Detection Calibration ' 
 
 
@@ -38,7 +40,8 @@ class RangingControler:
         # Create reference to the class instntiated when led clibration is requested by user
         self.led_calibration = None
         # Create led detection class
-        self.led_detection = LedDetection(MASK_WINDOW_NAME, MASK_WINDOW_OFFSET)
+        self.left_led_detection = LedDetection(LEFT_MASK_WINDOW_NAME, LEFT_MASK_WINDOW_OFFSET)
+        self.right_led_detection = LedDetection(RIGHT_MASK_WINDOW_NAME, RIGHT_MASK_WINDOW_OFFSET)
         # Keep track of number of photo count to save them with incremented names
         self.photo_count = 0
         # Videa processing is done frame by frame, store current left & right frame under process
@@ -60,33 +63,28 @@ class RangingControler:
             left_frame = self.left_camera.get()
             right_frame = self.right_camera.get()
 
-            if left_frame is not None:
-                # Perform detection of led in frame
-                left_target = self.led_detection.run(left_frame)
-                # Show frame on screen
-                if self.gui_active is True:
-                    self.left_camera.display(fps_text)
-
-            if right_frame is not None:
-                # Perform detection of led in frame
-                right_target = self.led_detection.run(right_frame)
-                # Show frame on screen
-                if self.gui_active is True:
-                    self.right_camera.display(fps_text)
+            # Perform detection of led in frame
+            left_position = self.left_led_detection.run(left_frame)
+            right_position = self.right_led_detection.run(right_frame)
 
             # Perform ranging if we do have 2 cameras working
-            if left_target and right_target:
-                self.ranging.run(left_target, right_target)
+            self.ranging.run(left_position, right_position)
 
             # Display things only if gui_active
             if self.gui_active is True:
+                # Show frame on screen
+                self.left_camera.display(left_frame, fps_text)
+                self.right_camera.display(right_frame, fps_text)
+
                 # Display calibration scrollbars window, if requested
                 if self.led_calibration:
                     self.led_calibration.show()
+
                 # Display led detection mask frame, if requested
                 if self.display_mask is True:
-                    self.led_detection.display()
-                # Print fps on terminal if no display on screen
+                    self.left_led_detection.display()
+                    self.right_led_detection.display()
+            # Print fps on terminal if no display on screen
             else:
                 print(fps_text)
 
@@ -100,7 +98,7 @@ class RangingControler:
         cmd = cv.waitKey(1)
         if cmd & 0xFF == 255:
             return go_on
-        if cmd & 0xFF == ord('d'):                
+        if cmd & 0xFF == ord('g'):                
             if self.gui_active is False:
                 # Display frames requested
                 self.gui_active = True
@@ -118,10 +116,12 @@ class RangingControler:
         elif cmd & 0xFF == ord('m'):                
             if self.display_mask is False:
                 # Calibration requested
-                self.led_detection.show()
+                self.left_led_detection.show()
+                self.right_led_detection.show()
                 self.display_mask = True
             else:
-                self.led_detection.hide()
+                self.left_led_detection.hide()
+                self.right_led_detection.hide()
                 self.display_mask = False
 
         elif cmd & 0xFF == ord('p'):
@@ -132,8 +132,11 @@ class RangingControler:
             right_file_name = f"{cwd}/Right/right_{num}.jpg"
             print(left_file_name)
             
-            self.left_camera.take_snapshot(left_file_name)
-            self.right_camera.take_snapshot(right_file_name)
+            left_frame = self.left_camera.get()
+            right_frame = self.right_camera.get()
+
+            self.left_camera.take_snapshot(left_frame, left_file_name)
+            self.right_camera.take_snapshot(right_frame, right_file_name)
 
             self.photo_count += 1 
 

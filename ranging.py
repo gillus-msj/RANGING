@@ -18,7 +18,7 @@ class Ranging:
         # Distance of convergence point of camera beams, in mm
         self.beam_convergence_distance = 10000
         
-    def run(self, left, right):        
+    def run(self, left_position, right_position):        
 
         
         return  True
